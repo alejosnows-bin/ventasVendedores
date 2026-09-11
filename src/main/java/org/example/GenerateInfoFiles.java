@@ -1,151 +1,94 @@
 package org.example;
 
-import java.io.*;
+import java.io.PrintWriter;
 
-import java.nio.file.*;
-
-import java.util.*;
-
-import java.util.stream.Collectors;
+import java.util.Random;
 
 
-class Producto {
+public class GenerateInfoFiles {
 
-    String id, nombre; double precio; int cantidadVendida = 0;
+    // Arrays con datos de prueba para generar información aleatoria
 
-    Producto(String id, String n, double p) { this.id = id; this.nombre = n; this.precio = p; }
+    private static final String[] NOMBRES = {"Carlos", "Ana", "Luis", "Maria", "Juan"};
 
-    public String getId() { return id; }
+    private static final String[] APELLIDOS = {"Gomez", "Perez", "Rodriguez", "Martinez"};
 
-}
+    private static final String[] TIPOS_DOC = {"CC", "CE", "TI"};
 
-class Vendedor {
+    private static final String[] PRODUCTOS_NOMBRES = {"Laptop", "Mouse", "Teclado", "Monitor"};
 
-    String tipoDoc, numDoc, nombres, apellidos; double ventasTotales = 0.0;
+    private static final double[] PRODUCTOS_PRECIOS = {2500000.50, 80000.00, 150000.99, 950000.00};
 
-    Vendedor(String td, String nd, String n, String a) { this.tipoDoc = td; this.numDoc = nd; this.nombres = n; this.apellidos = a; }
-
-    public String getNumDoc() { return numDoc; }
-
-}
-
-
-public class Main {
 
     public static void main(String[] args) {
 
         try {
 
-            System.out.println("Iniciando...");
+            System.out.println("Iniciando generación de archivos...");
 
+            createProductsFile(PRODUCTOS_NOMBRES.length);
 
+            createSalesManInfoFile(3); // Crear 3 vendedores
 
-            Map mapaProductos = cargarDatos("productos.csv", linea -> {
-
-                String[] d = linea.split(";"); return new Producto(d[0], d[1], Double.parseDouble(d[2]));
-
-            }, Producto::getId);
-
-
-
-            Map mapaVendedores = cargarDatos("vendedores.csv", linea -> {
-
-                String[] d = linea.split(";"); return new Vendedor(d[0], d[1], d[2], d[3]);
-
-            }, Vendedor::getNumDoc);
-
-
-            Files.walk(Paths.get("."))
-
-                    .filter(path -> path.getFileName().toString().startsWith("vendedor_"))
-
-                    .forEach(path -> procesarArchivoVenta(path, mapaProductos, mapaVendedores));
-
-
-            generarReportes(mapaVendedores, mapaProductos);
-
-
-
-            System.out.println("¡Reportes generados!");
+            System.out.println("¡Archivos generados exitosamente!");
 
         } catch (Exception e) { System.err.println("ERROR: " + e.getMessage()); }
 
     }
 
 
-    private static  Map cargarDatos(String archivo, java.util.function.Function constructor, java.util.function.Function getKey) throws IOException {
+    public static void createProductsFile(int productsCount) throws Exception {
 
-        return Files.lines(Paths.get(archivo)).map(constructor).collect(Collectors.toMap(getKey, item -> item));
+        try (PrintWriter writer = new PrintWriter("productos.csv", "UTF-8")) {
 
-    }
+            for (int i = 0; i < productsCount; i++) {
 
-
-
-    private static void procesarArchivoVenta(Path archivo, Map prods, Map vends) {
-
-        try {
-
-            List lineas = Files.readAllLines(archivo);
-
-            String idVendedor = lineas.get(0).split(";")[1];
-
-            Vendedor vendedor = vends.get(idVendedor);
-
-            if (vendedor == null) return;
-
-            for (int i = 1; i < lineas.size(); i++) {
-
-                String[] datos = lineas.get(i).split(";");
-
-                Producto producto = prods.get(datos[0]);
-
-                int cantidad = Integer.parseInt(datos[1]);
-
-                if (producto != null) {
-
-                    vendedor.ventasTotales += producto.precio * cantidad;
-
-                    producto.cantidadVendida += cantidad;
-
-                }
-
-            }
-
-        } catch (Exception e) { System.err.println("ADVERTENCIA: " + archivo.getFileName()); }
-
-    }
-
-
-
-    private static void generarReportes(Map mapaVendedores, Map mapaProductos) throws IOException {
-
-        List vendedoresOrdenados = mapaVendedores.values().stream()
-
-                .sorted(Comparator.comparingDouble(v -> -v.ventasTotales))
-
-                .collect(Collectors.toList());
-
-        try (PrintWriter writer = new PrintWriter("reporte_vendedores.csv")) {
-
-            for (Vendedor v : vendedoresOrdenados) {
-
-                writer.printf("%s %s;%.2f\n", v.nombres, v.apellidos, v.ventasTotales);
+                writer.println((i + 1) + ";" + PRODUCTOS_NOMBRES[i] + ";" + PRODUCTOS_PRECIOS[i]);
 
             }
 
         }
 
-        List productosOrdenados = mapaProductos.values().stream()
+    }
 
-                .sorted(Comparator.comparingInt(p -> -p.cantidadVendida))
 
-                .collect(Collectors.toList());
 
-        try (PrintWriter writer = new PrintWriter("reporte_productos.csv")) {
+    public static void createSalesManInfoFile(int salesmanCount) throws Exception {
 
-            for (Producto p : productosOrdenados) {
+        Random rand = new Random();
 
-                writer.printf("%s;%.2f\n", p.nombre, p.precio);
+        try (PrintWriter writer = new PrintWriter("vendedores.csv", "UTF-8")) {
+
+            for (int i = 0; i < salesmanCount; i++) {
+
+                long id = 100000000 + rand.nextInt(900000000);
+
+                String nombre = NOMBRES[rand.nextInt(NOMBRES.length)];
+
+                writer.println(TIPOS_DOC[rand.nextInt(TIPOS_DOC.length)] + ";" + id + ";" + nombre + ";" + APELLIDOS[rand.nextInt(APELLIDOS.length)]);
+
+                createSalesMenFile(rand.nextInt(4) + 2, nombre, id);
+
+            }
+
+        }
+
+    }
+
+
+    public static void createSalesMenFile(int randomSalesCount, String name, long id) throws Exception {
+
+        Random rand = new Random();
+
+        String fileName = "vendedor_" + id + ".csv";
+
+        try (PrintWriter writer = new PrintWriter(fileName, "UTF-8")) {
+
+            writer.println(TIPOS_DOC[rand.nextInt(TIPOS_DOC.length)] + ";" + id);
+
+            for (int i = 0; i < randomSalesCount; i++) {
+
+                writer.println((rand.nextInt(PRODUCTOS_NOMBRES.length) + 1) + ";" + (rand.nextInt(10) + 1) + ";");
 
             }
 
