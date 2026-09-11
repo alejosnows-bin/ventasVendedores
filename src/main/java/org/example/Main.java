@@ -7,6 +7,7 @@ import java.nio.file.*;
 import java.util.*;
 
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 class Producto {
@@ -40,7 +41,7 @@ public class Main {
 
 
 
-            Map mapaProductos = cargarDatos("productos.csv", linea -> {
+            Map<String, Producto> mapaProductos = cargarDatos("productos.csv", linea -> {
 
                 String[] d = linea.split(";"); return new Producto(d[0], d[1], Double.parseDouble(d[2]));
 
@@ -48,7 +49,7 @@ public class Main {
 
 
 
-            Map mapaVendedores = cargarDatos("vendedores.csv", linea -> {
+            Map<String, Vendedor> mapaVendedores = cargarDatos("vendedores.csv", linea -> {
 
                 String[] d = linea.split(";"); return new Vendedor(d[0], d[1], d[2], d[3]);
 
@@ -73,19 +74,29 @@ public class Main {
     }
 
 
-    private static  Map cargarDatos(String archivo, java.util.function.Function constructor, java.util.function.Function getKey) throws IOException {
+    private static <T, K> Map<K, T> cargarDatos(
+            String archivo,
+            java.util.function.Function<String, T> constructor,
+            java.util.function.Function<T, K> getKey) throws IOException {
 
-        return Files.lines(Paths.get(archivo)).map(constructor).collect(Collectors.toMap(getKey, item -> item));
+        try (Stream<String> lineas = Files.lines(Paths.get(archivo))) {
+            return lineas
+                    .map(constructor)
+                    .collect(Collectors.toMap(getKey, item -> item));
+        }
 
     }
 
 
 
-    private static void procesarArchivoVenta(Path archivo, Map prods, Map vends) {
+    private static void procesarArchivoVenta(
+            Path archivo,
+            Map<String, Producto> prods,
+            Map<String, Vendedor> vends) {
 
         try {
 
-            List lineas = Files.readAllLines(archivo);
+            List<String> lineas = Files.readAllLines(archivo);
 
             String idVendedor = lineas.get(0).split(";")[1];
 
@@ -117,11 +128,13 @@ public class Main {
 
 
 
-    private static void generarReportes(Map mapaVendedores, Map mapaProductos) throws IOException {
+    private static void generarReportes(
+            Map<String, Vendedor> mapaVendedores,
+            Map<String, Producto> mapaProductos) throws IOException {
 
-        List vendedoresOrdenados = mapaVendedores.values().stream()
+        List<Vendedor> vendedoresOrdenados = mapaVendedores.values().stream()
 
-                .sorted(Comparator.comparingDouble(v -> -v.ventasTotales))
+                .sorted(Comparator.comparingDouble((Vendedor v) -> -v.ventasTotales))
 
                 .collect(Collectors.toList());
 
@@ -135,9 +148,9 @@ public class Main {
 
         }
 
-        List productosOrdenados = mapaProductos.values().stream()
+        List<Producto> productosOrdenados = mapaProductos.values().stream()
 
-                .sorted(Comparator.comparingInt(p -> -p.cantidadVendida))
+                .sorted(Comparator.comparingInt((Producto p) -> -p.cantidadVendida))
 
                 .collect(Collectors.toList());
 
